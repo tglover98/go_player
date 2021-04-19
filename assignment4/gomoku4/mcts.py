@@ -1,4 +1,3 @@
-from gtp_connection import GtpConnection
 from board_util import GoBoardUtil, EMPTY
 from simple_board import SimpleGoBoard
 
@@ -8,8 +7,8 @@ import numpy as np
 def undo(board,move):
     board.board[move]=EMPTY
     board.current_player=GoBoardUtil.opponent(board.current_player)
-    
-def uct_val(node, child, C):
+
+def uct_val(node, child, C, max_flag):
     if child.visits == 0:
         return float("inf")
     if max_flag:
@@ -17,58 +16,84 @@ def uct_val(node, child, C):
             np.log(node.visits) / child.visits
         )
     else:
-        return float( child.vists - child.wins)/
-                child.visits + C * np.sqrt(
-                np.log(node.visits) / child.visits)
+        return float( child.vists - child.wins) / child.visits + C * np.sqrt(
+            np.log(node.visits) / child.visits)
+def game_result(board):
+    game_end, winner = board.check_game_end_gomoku()
+    moves = board.get_empty_points()
+    board_full = (len(moves) == 0)
+    if game_end:
+        #return 1 if winner == board.current_player else -1
+        return winner
+    if board_full:
+        return 'draw'
+    return None
 
-class mcst(object):
-    def __init__(self, color, board_size=7):
+
+class MCTS(object):
+    def __init__(self, color):
         self.num_sim = 1
         self.root = TreeNode(None)
         self.my_color = color
+        self.exploration = 100
     
     def build_tree(self, board):
-        assert self.current_player == self.my_color
+        assert board.current_player == self.my_color
         while True:
             board_copy = board.copy()
+            toplay = board.current_player
             self.playout(board_copy, toplay)
+        print("good")
+        return "hello_world"
     
     def get_best_move(self):
         moves_ls = [
-            (move, node._n_visits) for move, node in self._root._children.items()
+            (move, node.visits) for move, node in self.root.children.items()
         ]
+        if not moves_ls:
+            return None
+        moves_ls = sorted(moves_ls, key=lambda i: i[1], reverse=True)
+        move = moves_ls[0]
+        return move[0]
     
     def playout(self, board, toplay):
         node = self.root
+        count = 0
+        color =  self.my_color
         if not node.expanded:
             node.expand(board)
         while not node.is_leaf():
+            count +=1
             max_flag = toplay == self.my_color
             move, next_node = node.select(self.exploration, max_flag)
             board.play_move(move, color)
             color = GoBoardUtil.opponent(color)
             node = next_node
+            if count >50:
+                self.exploration = 10
+            if count >150:
+                self.exploration = 1
         assert node.is_leaf()
         if not node.expanded:
             node.expand(board)
         assert board.current_player == color
-        leaf_value = self.simulate(board,color)
+        leaf_value = self.simulate(board)
         node.update_recursive(leaf_value)
 
     def simulate(self, board):
-        res = game_result(board)
+        result = game_result(board)
         simulation_moves = []
-        while(res is None):
+        while(result is None):
             moves = board.get_pattern_moves()
             if moves == None:
                 moves = GoBoardUtil.generate_legal_moves_gomoku(board)
-            playout_move = random.choice(candidate_moves)
-            play_move(board, playout_move, board.current_player)
+            playout_move = random.choice(moves)
+            board.play_move_gomoku(playout_move, board.current_player)
             simulation_moves.append(playout_move)
-            results = game_result(board)
+            result = game_result(board)
             for m in simulation_moves[::-1]:
                 undo(board, m)
-        if res == self.my_color:
+        if result == self.my_color:
             return 1
         else:
             return 0
@@ -86,7 +111,7 @@ class TreeNode(object):
     def expand(self, board):
         moves = board.get_pattern_moves()
         legal_moves = GoBoardUtil.generate_legal_moves_gomoku(board)
-        if moves = None:
+        if moves == None:
             moves = legal_moves
         for move in moves:
             if move not in self.children:
@@ -95,10 +120,10 @@ class TreeNode(object):
                     self.children[move].move = move
         self.expanded = True
     
-    def select(self, exploration):
+    def select(self, exploration, max_flag):
         return max(
-            self._children.items(),
-            key=lambda items: uct_val(self, items[1], exploration),
+            self.children.items(),
+            key=lambda items: uct_val(self, items[1], exploration, max_flag),
         )
     def update(self, leaf_value):
         self.wins += leaf_value

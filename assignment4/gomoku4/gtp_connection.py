@@ -13,6 +13,21 @@ from board_util import GoBoardUtil, BLACK, WHITE, EMPTY, BORDER, PASS, \
 import numpy as np
 import re
 import signal
+from mcts import MCTS
+from contextlib import contextmanager
+
+class TimeoutException(Exception): pass
+
+@contextmanager
+def time_limit(seconds):
+    def signal_handler(signum, frame):
+        raise TimeoutException("Timed out!")
+    signal.signal(signal.SIGALRM, signal_handler)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
 
 class GtpConnection():
 
@@ -285,7 +300,7 @@ class GtpConnection():
         self.respond('')
 
     def handler(self, signum, fram):
-        self.board = self.sboard
+        # self.board = self.sboard
         raise Exception("unknown")
 
     def solve_cmd(self, args):
@@ -324,15 +339,15 @@ class GtpConnection():
             self.respond("pass")
             return
         move=None
+        copy_board = self.board.copy()
+        player = copy_board.current_player
+        mcts = MCTS(player)
         try:
-            signal.alarm(int(self.timelimit))
-            self.sboard = self.board.copy()
-            move = self.go_engine.get_move(self.board, color)
-            self.board=self.sboard
-            signal.alarm(0)
-        except Exception as e:
-            move=self.go_engine.best_move
-
+            with time_limit(self.timelimit):
+                mcts.build_tree(copy_board)
+                print("timeout")
+        except TimeoutException as e:
+            move = mcts.get_best_move()
         if move == PASS:
             self.respond("pass")
             return

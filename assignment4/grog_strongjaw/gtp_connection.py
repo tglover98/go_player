@@ -68,12 +68,12 @@ class GtpConnection():
             "gogui-rules_final_result": self.gogui_rules_final_result_cmd,
             "gogui-analyze_commands": self.gogui_analyze_cmd,
             "timelimit": self.timelimit_cmd,
-            "solve": self.solve_cmd,
+            # "solve": self.solve_cmd,
             "list_solve_point": self.list_solve_point_cmd, # below is added for Gomoku3
             "policy": self.set_playout_policy, 
             "policy_moves": self.display_pattern_moves
         }
-        self.timelimit=2
+        self.timelimit=40
 
         # used for argument checking
         # values: (required number of arguments, 
@@ -296,29 +296,29 @@ class GtpConnection():
             self.respond('{}'.format(str(e)))
 
     def timelimit_cmd(self, args):
-        self.timelimit = args[0]
+        self.timelimit = int(args[0])
         self.respond('')
 
     def handler(self, signum, fram):
         # self.board = self.sboard
         raise Exception("unknown")
 
-    def solve_cmd(self, args):
-        try:
-            self.sboard = self.board.copy()
-            signal.alarm(int(self.timelimit)-1)
-            winner,move = self.board.solve()
-            self.board = self.sboard
-            signal.alarm(0)
-            if move != "NoMove":
-                if move == None:
-                    self.respond('{} {}'.format(winner, self.board._point_to_coord(move)))
-                    return 
-                self.respond('{} {}'.format(winner, format_point(point_to_coord(move, self.board.size))))
-                return 
-            self.respond('{}'.format(winner))
-        except Exception as e:
-            self.respond('{}'.format(str(e)))
+    # def solve_cmd(self, args):
+    #     try:
+    #         self.sboard = self.board.copy()
+    #         signal.alarm(int(self.timelimit)-1)
+    #         winner,move = self.board.solve()
+    #         self.board = self.sboard
+    #         signal.alarm(0)
+    #         if move != "NoMove":
+    #             if move == None:
+    #                 self.respond('{} {}'.format(winner, self.board._point_to_coord(move)))
+    #                 return 
+    #             self.respond('{} {}'.format(winner, format_point(point_to_coord(move, self.board.size))))
+    #             return 
+    #         self.respond('{}'.format(winner))
+    #     except Exception as e:
+    #         self.respond('{}'.format(str(e)))
 
     def genmove_cmd(self, args):
         """
@@ -343,7 +343,7 @@ class GtpConnection():
         player = copy_board.current_player
         mcts = MCTS(player)
         try:
-            with time_limit(self.timelimit):
+            with time_limit(self.timelimit-10):
                 mcts.build_tree(copy_board)
                 print("timeout")
         except TimeoutException as e:

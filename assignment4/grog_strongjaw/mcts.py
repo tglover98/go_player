@@ -35,7 +35,7 @@ class MCTS(object):
         self.num_sim = 1
         self.root = TreeNode(None)
         self.my_color = color
-        self.exploration = 100
+        self.exploration = 1
     
     def build_tree(self, board):
         assert board.current_player == self.my_color
@@ -43,8 +43,7 @@ class MCTS(object):
             board_copy = board.copy()
             toplay = board.current_player
             self.playout(board_copy, toplay)
-        print("good")
-        return "hello_world"
+
     
     def get_best_move(self):
         moves_ls = [
@@ -66,12 +65,11 @@ class MCTS(object):
             count +=1
             max_flag = toplay == self.my_color
             move, next_node = node.select(self.exploration, max_flag)
+            color = board.current_player
             board.play_move(move, color)
-            color = GoBoardUtil.opponent(color)
+            color = board.current_player
             node = next_node
             if count >50:
-                self.exploration = 10
-            if count >150:
                 self.exploration = 1
         assert node.is_leaf()
         if not node.expanded:
@@ -84,9 +82,12 @@ class MCTS(object):
         result = game_result(board)
         simulation_moves = []
         while(result is None):
-            moves = board.get_pattern_moves()
-            if moves == None:
+            ret = board.get_pattern_moves()
+            if ret == None:
                 moves = GoBoardUtil.generate_legal_moves_gomoku(board)
+            else:
+                movetype_id, moves=ret
+
             playout_move = random.choice(moves)
             board.play_move_gomoku(playout_move, board.current_player)
             simulation_moves.append(playout_move)
@@ -109,7 +110,11 @@ class TreeNode(object):
         self.move = None
 
     def expand(self, board):
-        moves = board.get_pattern_moves()
+        ret = board.get_pattern_moves()
+        if ret == None:
+            moves = GoBoardUtil.generate_legal_moves_gomoku(board)
+        else:
+            movetype_id, moves=ret
         legal_moves = GoBoardUtil.generate_legal_moves_gomoku(board)
         if moves == None:
             moves = legal_moves

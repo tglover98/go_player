@@ -346,6 +346,7 @@ class SimpleGoBoard(object):
         assert is_black_white(color)
         assert point != PASS
         if self.board[point] != EMPTY:
+            print(self.board[point])
             return False
         self.board[point] = color
         self.current_player = GoBoardUtil.opponent(color)
@@ -475,7 +476,7 @@ class SimpleGoBoard(object):
                      {'oooo.':{0},'ooo.o':{1},'oo.oo':{2},'o.ooo':{3},'.oooo':{4}}, #block win
                      {'.xxx..':{1},'..xxx.':{4},'.xx.x.':{2},'.x.xx.':{3}}, #make-four
                      {'.ooo..':{1,5},'..ooo.':{0,4},'.oo.o.':{0,2,5},'.o.oo.':{0,3,5}, 'B.ooo..':{0}, '..ooo.B':{6},
-                     'x.ooo..':{0}, '..ooo.x':{6} #block-open-four
+                     'x.ooo..':{0}, '..ooo.x':{6},'.o.o.o.':{6} #block-open-four
                      }]
 
         direction_x=[1,0,1,-1]

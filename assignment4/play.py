@@ -1,13 +1,13 @@
 import pexpect
 
-player2='flat_mc_player/Gomoku3.py'
+player2='random_player/Gomoku2.py'
 player1='grog_strongjaw/Gomoku4.py'
 
 win1=0
 win2=0
 numTimeout=0
 draw=0
-timeout=60
+timeout=30
 
 def getMove(p,color):
     p.sendline('genmove '+color)
